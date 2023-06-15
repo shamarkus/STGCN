@@ -6,7 +6,7 @@ import os
 
 def processPRMD():
 
-	mainPath = '../../'
+	mainPath = '../../data/'
 	rawPath = mainPath + 'raw/'
 	cleanPath = mainPath + 'clean/'
 
@@ -22,7 +22,7 @@ def processPRMD():
 	prmdDataset = []
 
   # Correct Segmented Movements
-	correct_path = os.path.join(rawPath, 'corprmd', 'Kinect', 'Positions')
+	correct_path = os.path.join(rawPath, 'Segmented Movements', 'Kinect', 'Positions')
 	for filename in os.listdir(correct_path):
 		if filename.endswith('_positions.txt'):
 			data = pd.read_csv(os.path.join(correct_path, filename), delimiter=",")
@@ -32,7 +32,7 @@ def processPRMD():
 			prmdDataset.append((numpy_data, movement, 1))
 
 	# Incorrect Segmented Movements
-	incorrect_path = os.path.join(rawPath, 'incprmd', 'Kinect', 'Positions')
+	incorrect_path = os.path.join(rawPath, 'Incorrect Segmented Movements', 'Kinect', 'Positions')
 	for filename in os.listdir(incorrect_path):
 		if filename.endswith('_positions_inc.txt'):
 			data = pd.read_csv(os.path.join(incorrect_path, filename), delimiter=",")
@@ -51,5 +51,3 @@ def processPRMD():
 	# Save to pickle
 	with open(cleanPath + 'prmdDataset.pkl', 'wb') as f:
 		pickle.dump(prmdDataset, f)
-
-processPRMD()
