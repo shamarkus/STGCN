@@ -3,11 +3,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import seaborn as sns
 from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, mean_squared_error, mean_absolute_error
 from scipy.stats import spearmanr
-
 from training.utils import create_adjacency_matrix, getDataset
 from models import *
 
@@ -15,7 +15,7 @@ def find_best_models(models_directory):
 	best_models = {}
 	for filename in os.listdir(models_directory):
 		if filename.endswith(".pth"):
-			exercise, fold, _, _, val_loss, _ = filename.split('_')
+			exercise, _, fold, _, _, val_loss, _ , _ = filename.split('_')
 			val_loss = float(val_loss[1:])
 			if exercise not in best_models:
 				best_models[exercise] = {}
@@ -26,10 +26,31 @@ def find_best_models(models_directory):
 # Function for calculating MAE and MSE
 # Add spearmans correlation
 def calculate_metrics(predictions, truths):
-	mse = mean_squared_error(truths, predictions)
-	mae = mean_absolute_error(truths, predictions)
-	spearman_corr, _ = spearmanr(truths, predictions)
-	return mse, mae, spearman_corr
+	predictions = np.concatenate(np.array(predictions))
+	truths = np.ravel(truths)
+
+	threshold = 0.5
+	preds = (predictions > threshold).astype(int)
+
+	# Compute metrics
+	accuracy = accuracy_score(truths, preds)
+	precision = precision_score(truths, preds)
+	recall = recall_score(truths, preds)
+	f1 = f1_score(truths, preds)
+
+	conf_mat = confusion_matrix(truths, preds)
+
+	# plot the confusion matrix
+	plt.figure(figsize=(10,7))
+	sns.heatmap(conf_mat, annot=True, fmt="d",
+	xticklabels=['Negative', 'Positive'], 
+	yticklabels=['Negative', 'Positive'])
+	plt.ylabel('Actual')
+	plt.xlabel('Predicted')
+	plt.title(f'Confusion Matrix')
+	plt.savefig(f"ConfusionMatrix.png")
+
+	return accuracy, precision, recall, f1
 
 # Function for generating scatter plot
 def generate_scatter_plot(fold_predictions, fold_truths, title):
@@ -70,13 +91,15 @@ def get_predictions(model, dataloader, device):
 	with torch.no_grad():
 		for joint_positions, label in dataloader:
 			# Move tensors to the configured device
-			joint_positions = joint_positions.to(device).reshape(-1, joint_positions.size(1), int(joint_positions.size(2) / 3), 3)
-			label = label.to(device).view(-1, 1)
+			joint_positions = joint_positions.to(device)
+			label = label.to(device).float().view(-1, 1)
 			# Forward pass
 			outputs = model(joint_positions, [])
 
+			probs = torch.sigmoid(outputs)
+
 			# Collect the predictions and the true labels
-			predictions.append(outputs.item())
+			predictions.append(probs.item())
 			truths.append(label.item())
 
 	return predictions, truths
@@ -100,12 +123,12 @@ def analysis():
 	A = create_adjacency_matrix(args.joint_dimension)
 
 	for exercise, exercise_data in best_models.items():
-		exercise_dataset = getDataset(exercise)
+		exercise_dataset = getDataset(exercise + '_abs')
 		labels = [exercise_dataset[i][1] for i in range(len(exercise_dataset))]
 		fold_predictions = []
 		fold_truths = []
 
-		for fold, (train_indices, val_indices) in enumerate(skf.split(np.zeros(len(exercise_dataset)), labels)):
+		for fold, (train_in, val_indices) in enumerate(skf.split(np.zeros(len(exercise_dataset)), labels)):
 			if (f"FOLD{fold}") in exercise_data:
 				val_dataset = Subset(exercise_dataset, val_indices)
 				val_loader = DataLoader(val_dataset, 1)
@@ -115,6 +138,8 @@ def analysis():
 					model = STGCN_9B(args.pixel_dimension, args.output_dimension, A).to(device)
 				elif args.model_str == '3B':
 					model = STGCN_3B(args.pixel_dimension, args.output_dimension, A).to(device)
+				elif args.model_str == '3B_RI':
+					model = STGCN_3B_RI(args.pixel_dimension, args.output_dimension, A).to(device)
 
 				model_path = os.path.join(models_directory, exercise_data[f"FOLD{fold}"][0])
 				model.load_state_dict(torch.load(model_path, map_location=device))
@@ -124,8 +149,8 @@ def analysis():
 				fold_predictions.append(predictions)
 				fold_truths.append(truths)
 
-		mse, mae, spearman_corr = calculate_metrics(fold_predictions, fold_truths)
-		print(f"Exericse: {exercise}, MSE: {mse}, MAE: {mae}, spearman_corr: {spearman_corr}")
+		accuracy, precision, recall, f1 = calculate_metrics(fold_predictions, fold_truths)
+		print(f"Exericse: {exercise}, accuracy: {accuracy}, precision: {precision}, recall: {recall}, f1: {f1}")
 
 		generate_scatter_plot(fold_predictions, fold_truths, f"{exercise}")
 

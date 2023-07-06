@@ -6,7 +6,7 @@ import os
 
 def processPRMD():
 
-	mainPath = '../../data/'
+	mainPath = '../../../data/'
 	rawPath = mainPath + 'raw/'
 	cleanPath = mainPath + 'clean/'
 
@@ -15,9 +15,9 @@ def processPRMD():
 		rawPath + 'incprmd.zip'
 	]
 
-	for zip_file in zip_files:
-		with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-			zip_ref.extractall(rawPath)
+# 	for zip_file in zip_files:
+# 		with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+# 			zip_ref.extractall(rawPath)
 
 	prmdDataset = []
 
@@ -51,3 +51,5 @@ def processPRMD():
 	# Save to pickle
 	with open(cleanPath + 'prmdDataset.pkl', 'wb') as f:
 		pickle.dump(prmdDataset, f)
+
+# processPRMD()

@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, Subset
-from training import trainModel
+from training import trainModel_bce
 from training.utils import create_adjacency_matrix, getDataset, collate_fn
 from models import *
 
@@ -29,6 +29,8 @@ def run():
 		model = STGCN_9B(args.pixel_dimension, args.output_dimension, A).to(device)
 	elif args.model_str == '3B':
 		model = STGCN_3B(args.pixel_dimension, args.output_dimension, A).to(device)
+	elif args.model_str == '3B_RI':
+		model = STGCN_3B_RI(args.pixel_dimension, args.output_dimension, A).to(device)
 
 	# KFOLD cross validation - Extract labels from the dataset
 	exercise_dataset = getDataset(args.dataset)
@@ -45,13 +47,15 @@ def run():
 		val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle = True, collate_fn=collate_fn)
 
 		print(f"------- Training model on exercise = {args.dataset}, fold = {fold}, lr = {args.learning_rate}, bs = {args.batch_size}", flush=True)
-		global_training_losses, global_validation_losses = trainModel(model, args.model_str, args.dataset, device, args.learning_rate, args.batch_size, args.num_epochs, train_loader, val_loader, fold)
+		global_training_losses, global_validation_losses = trainModel_bce(model, args.model_str, args.dataset, device, args.learning_rate, args.batch_size, args.num_epochs, train_loader, val_loader, fold)
 
 		# Reset the model
 		if args.model_str == '9B':
 			model = STGCN_9B(args.pixel_dimension, args.output_dimension, A).to(device)
 		elif args.model_str == '3B':
 			model = STGCN_3B(args.pixel_dimension, args.output_dimension, A).to(device)
+		elif args.model_str == '3B_RI':
+			model = STGCN_3B_RI(args.pixel_dimension, args.output_dimension, A).to(device)
 
 # python run.py --dataset m01 --pixel_dimension 3 --joint_dimension 22 --output_dimension 128 --learning_rate 0.0001 --num_epochs 10000 --batch_size 1
 if __name__ == '__main__':

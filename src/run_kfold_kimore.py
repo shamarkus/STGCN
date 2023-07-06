@@ -1,7 +1,7 @@
 import argparse
 import torch
 import numpy as np
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader, Subset
 from training import trainModel
 from training.utils import create_adjacency_matrix, getDataset, collate_fn
@@ -34,7 +34,7 @@ def run():
 	exercise_dataset = getDataset(args.dataset)
 	labels = [exercise_dataset[i][1] for i in range(len(exercise_dataset))]
 
-	skf = StratifiedKFold(n_splits=5, random_state=1, shuffle=True)
+	skf = KFold(n_splits=5, random_state=1, shuffle=True)
 
 	for fold, (train_indices, val_indices) in enumerate(skf.split(np.zeros(len(exercise_dataset)), labels)):
 

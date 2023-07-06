@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader, Subset
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from scipy.stats import spearmanr
 
@@ -26,6 +26,9 @@ def find_best_models(models_directory):
 # Function for calculating MAE and MSE
 # Add spearmans correlation
 def calculate_metrics(predictions, truths):
+	predictions = np.concatenate(np.array(predictions))
+	truths = np.ravel(truths)
+
 	mse = mean_squared_error(truths, predictions)
 	mae = mean_absolute_error(truths, predictions)
 	spearman_corr, _ = spearmanr(truths, predictions)
@@ -94,7 +97,7 @@ def analysis():
 	models_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../models/'))
 	best_models = find_best_models(models_directory)
 
-	skf = StratifiedKFold(n_splits=5, random_state=1, shuffle=True)
+	skf = KFold(n_splits=5, random_state=1, shuffle=True)
 
 	# 22 for UIPRMD, 25 for KIMORE
 	A = create_adjacency_matrix(args.joint_dimension)

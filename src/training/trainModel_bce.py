@@ -1,8 +1,8 @@
 import torch
 import os
 from torch import nn
-from .train import train
-from .validate import validate
+from .train_bce import train
+from .validate_bce import validate
 from .utils import getDataloaders
 
 class CustomLRAdjuster:
@@ -25,7 +25,7 @@ def trainModel(model, model_str, es_str, device, lr, bs, num_epochs, train_loade
 	global_validation_losses = []
   
 	# Define the loss function and optimizer
-	criterion = nn.MSELoss()
+	criterion = nn.BCEWithLogitsLoss()
 	# criterion = nn.L1Loss()
 
 	optimizer = torch.optim.Adam(model.parameters(), lr = lr)
@@ -43,9 +43,9 @@ def trainModel(model, model_str, es_str, device, lr, bs, num_epochs, train_loade
 
 	# Training Loop
 	for epoch in range(num_epochs):
-		train_loss = train(model, train_loader, criterion, optimizer, device)
+		train_loss, train_acc = train(model, train_loader, criterion, optimizer, device)
 
-		val_loss = validate(model, val_loader, criterion, device)
+		val_loss, val_acc = validate(model, val_loader, criterion, device)
 
 		scheduler.step()
 		# scheduler.step(val_loss)
@@ -56,12 +56,11 @@ def trainModel(model, model_str, es_str, device, lr, bs, num_epochs, train_loade
 	# Save model if validation loss is less than 0.150
 		if epoch % 10 == 0:
 			if fold == None:
-				torch.save(model.state_dict(), os.path.join(models_path,f"{es_str}_{epoch+1}_{train_loss:.4f}_{val_loss:.4f}_{model_str}.pth"))
+				torch.save(model.state_dict(), os.path.join(models_path,f"{es_str}_{epoch+1}_{(1 - train_acc):.4f}_{(1 - val_acc):.4f}_{model_str}.pth"))
 			else:
-				torch.save(model.state_dict(), os.path.join(models_path,f"{es_str}_FOLD{fold}_E{epoch+1}_T{train_loss:.4f}_V{val_loss:.4f}_{model_str}.pth"))
+				torch.save(model.state_dict(), os.path.join(models_path,f"{es_str}_FOLD{fold}_E{epoch+1}_T{(1 - train_acc):.4f}_V{(1 - val_acc):.4f}_{model_str}.pth"))
 
 
-		print(f"Epoch {epoch+1}/{num_epochs}.. Train loss: {train_loss:.3f}.. Validation loss: {val_loss:.3f}", flush=True)
-
+		print(f"Epoch {epoch+1}/{num_epochs}.. Train loss: {train_acc:.3f}.. Validation loss: {val_acc:.3f}", flush=True)
 
 	return global_training_losses, global_validation_losses 
