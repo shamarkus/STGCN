@@ -28,6 +28,9 @@ class STGCN(nn.Module):
         )
 
     def forward(self, x, lengths):
+		# Novelty
+        x = torch.einsum('bmic,bmjc->bmij', x, x)
+
         N, T, V, C = x.size()
         x = x.permute(0, 2, 3 ,1).contiguous()
         x = x.view(N, V * C, T)

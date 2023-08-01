@@ -5,7 +5,35 @@ from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, Subset
 from training import trainModel_bce
 from training.utils import create_adjacency_matrix, getDataset, collate_fn
+from scipy.spatial.transform import Rotation as R
 from models import *
+
+# def __RI__(sample):
+# 	return np.einsum('ijk,ilk->ijl', sample, sample)
+
+def __augment__(sample, aug_angle):
+	euler = (2 * np.random.rand(3) - 1) * (aug_angle / 180.) * np.pi
+	rotation = R.from_euler('zxy', euler, degrees=False).as_matrix()
+	sample = np.einsum('ij,kmj->kmi', rotation, sample)
+	return sample
+
+def getAugDataset(dataset):
+	old_len = len(dataset)
+
+	for i in range(old_len):
+		sample = dataset.data[i]
+		for angle in [1, 2, 5, 10]:
+			aug_sample = __augment__(sample[0],angle)
+			dataset.append([[aug_sample, sample[1], sample[2]]])
+
+	return dataset
+
+# def getRIDataset(dataset):
+# 
+# 	for i in range(len(dataset)):
+# 		dataset.prmd_data[i][0] = __RI__(dataset.prmd_data[i][0])
+# 
+# 	return dataset
 
 # Define and parse command-line arguments
 def run():
@@ -40,9 +68,19 @@ def run():
 
 	for fold, (train_indices, val_indices) in enumerate(skf.split(np.zeros(len(exercise_dataset)), labels)):
 
-		train_dataset = Subset(exercise_dataset, train_indices)
-		val_dataset = Subset(exercise_dataset, val_indices)
+		# For the purposes of augmenting or novelties
+		train_dataset = exercise_dataset.get_subset(train_indices)
+		val_dataset = exercise_dataset.get_subset(val_indices)
 
+		if "DA" in args.dataset:
+			print("Augmenting Data...")
+			train_dataset = getAugDataset(train_dataset)
+		
+# 		if "RI" in args.dataset:
+# 			print("Rotation Invariance Novelty...")
+# 			train_dataset = getRIDataset(train_dataset)
+
+		print(len(train_dataset), len(val_dataset), len(exercise_dataset))
 		train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle = True, collate_fn=collate_fn)
 		val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle = True, collate_fn=collate_fn)
 

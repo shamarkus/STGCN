@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, mean_squared_error, mean_absolute_error
 from scipy.stats import spearmanr
+from itertools import chain
 from training.utils import create_adjacency_matrix, getDataset
 from models import *
 
@@ -15,22 +16,28 @@ def find_best_models(models_directory):
 	best_models = {}
 	for filename in os.listdir(models_directory):
 		if filename.endswith(".pth"):
-			exercise, _, fold, _, _, val_loss, _ , _ = filename.split('_')
+			exercise, _, fold, _, train_loss, val_loss, _ , _ = filename.split('_')
+			# exercise, _, fold, _, train_loss, val_loss, _ = filename.split('_')
+			# exercise, fold, _, train_loss, val_loss, _ = filename.split('_')
 			val_loss = float(val_loss[1:])
+			train_loss = float(train_loss[1:])
 			if exercise not in best_models:
 				best_models[exercise] = {}
-			if fold not in best_models[exercise] or val_loss < best_models[exercise][fold][1]:
-				best_models[exercise][fold] = (filename, val_loss)
+			if fold not in best_models[exercise] or val_loss < best_models[exercise][fold][1] or (val_loss == best_models[exercise][fold][1] and train_loss < best_models[exercise][fold][2]):
+				best_models[exercise][fold] = (filename, val_loss, train_loss)
 	return best_models
 
 # Function for calculating MAE and MSE
 # Add spearmans correlation
 def calculate_metrics(predictions, truths):
-	predictions = np.concatenate(np.array(predictions))
-	truths = np.ravel(truths)
+	# print(predictions, truths)
+	# predictions = np.concatenate(np.array(predictions))
+	# truths = np.ravel(truths)
 
 	threshold = 0.5
-	preds = (predictions > threshold).astype(int)
+	# preds = (predictions > threshold).astype(int)
+	truths = np.array(list(chain.from_iterable(truths)))
+	preds = np.where( np.array(list(chain.from_iterable(predictions))) > threshold, 1, 0)
 
 	# Compute metrics
 	accuracy = accuracy_score(truths, preds)
@@ -41,14 +48,14 @@ def calculate_metrics(predictions, truths):
 	conf_mat = confusion_matrix(truths, preds)
 
 	# plot the confusion matrix
-	plt.figure(figsize=(10,7))
-	sns.heatmap(conf_mat, annot=True, fmt="d",
-	xticklabels=['Negative', 'Positive'], 
-	yticklabels=['Negative', 'Positive'])
-	plt.ylabel('Actual')
-	plt.xlabel('Predicted')
-	plt.title(f'Confusion Matrix')
-	plt.savefig(f"ConfusionMatrix.png")
+	# plt.figure(figsize=(10,7))
+	# sns.heatmap(conf_mat, annot=True, fmt="d",
+	# xticklabels=['Negative', 'Positive'], 
+	# yticklabels=['Negative', 'Positive'])
+	# plt.ylabel('Actual')
+	# plt.xlabel('Predicted')
+	# plt.title(f'Confusion Matrix')
+	# plt.savefig(f"ConfusionMatrix.png")
 
 	return accuracy, precision, recall, f1
 
@@ -114,7 +121,7 @@ def analysis():
 
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-	models_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../models/'))
+	models_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../models/I_ABSDARI/'))
 	best_models = find_best_models(models_directory)
 
 	skf = StratifiedKFold(n_splits=5, random_state=1, shuffle=True)
@@ -123,7 +130,9 @@ def analysis():
 	A = create_adjacency_matrix(args.joint_dimension)
 
 	for exercise, exercise_data in best_models.items():
-		exercise_dataset = getDataset(exercise + '_abs')
+
+		# Change this section based on the dataset we use
+		exercise_dataset = getDataset(exercise + '')
 		labels = [exercise_dataset[i][1] for i in range(len(exercise_dataset))]
 		fold_predictions = []
 		fold_truths = []
@@ -143,6 +152,8 @@ def analysis():
 
 				model_path = os.path.join(models_directory, exercise_data[f"FOLD{fold}"][0])
 				model.load_state_dict(torch.load(model_path, map_location=device))
+
+				print(model_path)
 
 				predictions, truths = get_predictions(model, val_loader, device) # Make this function
 

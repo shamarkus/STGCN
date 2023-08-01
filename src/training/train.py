@@ -6,7 +6,7 @@ def train(model, dataloader, criterion, optimizer, device):
     running_loss = 0.0
     for joint_positions, lengths, label in dataloader:
         # Move tensors to the configured device
-        joint_positions = joint_positions.to(device).reshape(-1, joint_positions.size(1), int(joint_positions.size(2) / 3), 3)
+        joint_positions = joint_positions.to(device)
         label = label.to(device).view(-1,1)
 
         # Forward pass
@@ -15,10 +15,9 @@ def train(model, dataloader, criterion, optimizer, device):
         if torch.isnan(outputs[0][0]):
             sys.exit()
 
-        l1_lambda = 0.00
-        l1_norm = sum(p.abs().sum() for p in model.parameters())
-        loss = criterion(outputs, label) + l1_lambda * l1_norm
-
+        # l1_lambda = 0.00
+        # l1_norm = sum(p.abs().sum() for p in model.parameters())
+        loss = criterion(outputs, label) # + l1_lambda * l1_norm
 
         # Backward and optimize
         optimizer.zero_grad()

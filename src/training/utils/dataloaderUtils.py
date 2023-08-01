@@ -20,18 +20,25 @@ def getDataset(es_str):
 		pickle_path = os.path.join(clean_path, 'prmdDataset_abs.pkl')
 		dataset_class = PRMDCustomDataset
 	elif es_str in ['m01_absRI', 'm02_absRI', 'm03_absRI', 'm04_absRI', 'm05_absRI', 'm06_absRI', 'm07_absRI', 'm08_absRI', 'm09_absRI', 'm10_absRI']:
-		pickle_path = os.path.join(clean_path, 'prmdDataset_absRI.pkl')
+		pickle_path = os.path.join(clean_path, 'prmdDataset_abs.pkl')
 		dataset_class = PRMDCustomDataset
 	elif es_str in ['m01_absDA', 'm02_absDA', 'm03_absDA', 'm04_absDA', 'm05_absDA', 'm06_absDA', 'm07_absDA', 'm08_absDA', 'm09_absDA', 'm10_absDA']:
-		pickle_path = os.path.join(clean_path, 'prmdDataset_absDA.pkl')
+		# For the purposes of a non-augmented dataset, we need to use the same dataset, but augment it within trainModel
+		pickle_path = os.path.join(clean_path, 'prmdDataset_abs.pkl')
+		# pickle_path = os.path.join(clean_path, 'prmdDataset_absDA.pkl')
 		dataset_class = PRMDCustomDataset
 	elif es_str in ['m01_absDARI', 'm02_absDARI', 'm03_absDARI', 'm04_absDARI', 'm05_absDARI', 'm06_absDARI', 'm07_absDARI', 'm08_absDARI', 'm09_absDARI', 'm10_absDARI']:
-		pickle_path = os.path.join(clean_path, 'prmdDataset_absDARI.pkl')
+		# For the purposes of a non-augmented dataset, we need to use the same dataset, but augment it within trainModel
+		pickle_path = os.path.join(clean_path, 'prmdDataset_abs.pkl')
+		# pickle_path = os.path.join(clean_path, 'prmdDataset_absDARI.pkl')
 		dataset_class = PRMDCustomDataset
 	# KiMoRe section
-	elif es_str in ['Es1', 'Es2', 'Es3', 'Es4', 'Es5']:
+	elif es_str in ['Es1', 'Es2', 'Es3', 'Es4', 'Es5', 'Es1_RI', 'Es2_RI', 'Es3_RI', 'Es4_RI', 'Es5_RI', 'Es1_DA', 'Es2_DA', 'Es3_DA', 'Es4_DA', 'Es5_DA', 'Es1_DARI', 'Es2_DARI', 'Es3_DARI', 'Es4_DARI', 'Es5_DARI']:
 		pickle_path = os.path.join(clean_path, 'kimoreDataset.pkl')
 		dataset_class = KimoreCustomDataset
+	elif es_str in ['I0', 'I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7', 'I8', 'I0_RI', 'I1_RI', 'I2_RI', 'I3_RI', 'I4_RI', 'I5_RI', 'I6_RI', 'I7_RI', 'I8_RI',  'I0_DA', 'I1_DA', 'I2_DA', 'I3_DA', 'I4_DA', 'I5_DA', 'I6_DA', 'I7_DA', 'I8_DA', 'I0_DARI', 'I1_DARI', 'I2_DARI', 'I3_DARI', 'I4_DARI', 'I5_DARI', 'I6_DARI', 'I7_DARI', 'I8_DARI']:
+		pickle_path = os.path.join(clean_path, 'intellirehab.pkl')
+		dataset_class = IntellirehabCustomDataset
 	else:
 		raise ValueError('Invalid es_str parameter.')
 

@@ -15,8 +15,14 @@ def find_best_models(models_directory):
 	best_models = {}
 	for filename in os.listdir(models_directory):
 		if filename.endswith(".pth"):
-			exercise, fold, _, _, val_loss, _ = filename.split('_')
+# ABS
+			exercise, _, fold, _, _, val_loss, _ , _ = filename.split('_')
+			# exercise, _, fold, _, _, val_loss, _ = filename.split('_')
+			# exercise, fold, _, _, val_loss, _ = filename.split('_')
 			val_loss = float(val_loss[1:])
+		# 	Es3_FOLD2_E441_T127.1582_V152.9364_3B.pth
+		# 	Es3_RI_FOLD2_E441_T150.9523_V85.5333_3B_RI.pth
+# RI or DA
 			if exercise not in best_models:
 				best_models[exercise] = {}
 			if fold not in best_models[exercise] or val_loss < best_models[exercise][fold][1]:
@@ -73,7 +79,7 @@ def get_predictions(model, dataloader, device):
 	with torch.no_grad():
 		for joint_positions, label in dataloader:
 			# Move tensors to the configured device
-			joint_positions = joint_positions.to(device).reshape(-1, joint_positions.size(1), int(joint_positions.size(2) / 3), 3)
+			joint_positions = joint_positions.to(device)
 			label = label.to(device).view(-1, 1)
 			# Forward pass
 			outputs = model(joint_positions, [])
@@ -94,7 +100,7 @@ def analysis():
 
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-	models_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../models/'))
+	models_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '../models/ES3_ABSDARI/'))
 	best_models = find_best_models(models_directory)
 
 	skf = KFold(n_splits=5, random_state=1, shuffle=True)
@@ -103,6 +109,9 @@ def analysis():
 	A = create_adjacency_matrix(args.joint_dimension)
 
 	for exercise, exercise_data in best_models.items():
+		# RI OR DA
+		# exercise_dataset = getDataset(exercise + '_DA')
+# ABS
 		exercise_dataset = getDataset(exercise)
 		labels = [exercise_dataset[i][1] for i in range(len(exercise_dataset))]
 		fold_predictions = []
@@ -118,9 +127,13 @@ def analysis():
 					model = STGCN_9B(args.pixel_dimension, args.output_dimension, A).to(device)
 				elif args.model_str == '3B':
 					model = STGCN_3B(args.pixel_dimension, args.output_dimension, A).to(device)
+				elif args.model_str == '3B_RI':
+					model = STGCN_3B_RI(args.pixel_dimension, args.output_dimension, A).to(device)
 
 				model_path = os.path.join(models_directory, exercise_data[f"FOLD{fold}"][0])
 				model.load_state_dict(torch.load(model_path, map_location=device))
+
+				print(model_path)
 
 				predictions, truths = get_predictions(model, val_loader, device) # Make this function
 
